@@ -228,6 +228,21 @@ pub(crate) fn silently_discover_credentials<Dev: FidoDevice>(
     vec![]
 }
 
+/// Credentials registered through the U2F API are scoped to the FIDO App ID instead of the RP ID.
+/// If the device holds allowed credentials under the App ID, returns that relying party and those
+/// credentials: the request must then be made for the App ID.
+pub(crate) fn silently_discover_app_id_credentials<Dev: FidoDevice>(
+    dev: &mut Dev,
+    cred_list: &[PublicKeyCredentialDescriptor],
+    app_id: &str,
+    client_data_hash: &ClientDataHash,
+    status: &Sender<StatusUpdate>,
+) -> Option<(RelyingParty, Vec<PublicKeyCredentialDescriptor>)> {
+    let rp = RelyingParty::from(app_id);
+    let creds = silently_discover_credentials(dev, cred_list, &rp, client_data_hash, status);
+    (!creds.is_empty()).then_some((rp, creds))
+}
+
 #[cfg(test)]
 pub mod tests {
     use super::*;
